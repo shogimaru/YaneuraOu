@@ -119,7 +119,7 @@ PYTHON = python
 
 
 # 標準的なコンパイルオプション (standard compile options)
-CPPFLAGS      = -std=c++17 -fno-exceptions -fno-rtti -Wextra -DPOSIXALIGNEDALLOC -msimd128
+CPPFLAGS      = -std=c++17 -fno-exceptions -fno-rtti -Wextra -DPOSIXALIGNEDALLOC
 NVCC_CPPFLAGS = -std=c++17 -x cu -maxrregcount=0 --machine 64 --compile -cudart static -DNDEBUG -Xcompiler "-Ofast"
 WCPPFLAGS     =
 LDFLAGS       = $(EXTRA_LDFLAGS)
@@ -217,7 +217,7 @@ else
 		#EM_EXPORT_NAME=YaneuraOu
 		#EM_INITIAL_MEMORY_SIZE=$(shell if [ $(MATERIAL_LEVEL) -ge 5 ]; then echo 385875968; else echo 138412032; fi)
 		CPPFLAGS += -Wno-unused-parameter
-		#CPPFLAGS += -DUSE_WASM_SIMD -msimd128
+		CPPFLAGS += -DUSE_WASM_SIMD -msimd128
 		#CPPFLAGS += -DUSE_SSE42 -msse4.2
 		#CPPFLAGS += -march=wasm32
 		# CPPFLAGS += -march=corei7
