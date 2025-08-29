@@ -1,8 +1,8 @@
 ﻿// Constants used in NNUE evaluation function
 // NNUE評価関数で用いる定数など
 
-#ifndef NNUE_COMMON_H_INCLUDED
-#define NNUE_COMMON_H_INCLUDED
+#ifndef CLASSIC_NNUE_COMMON_H_INCLUDED
+#define CLASSIC_NNUE_COMMON_H_INCLUDED
 
 #include <cstring>		// std::memcpy()
 
@@ -15,6 +15,8 @@
 #if defined(USE_WASM_SIMD)
 #include "./wasm_simd.h"
 #endif
+
+namespace YaneuraOu {
 
 // HACK: Use _mm256_loadu_si256() instead of _mm256_load_si256. Otherwise a binary
 //       compiled with older g++ crashes because the output memory is not aligned
@@ -45,8 +47,6 @@
 #endif
 
 namespace Eval::NNUE {
-
-
 
   // Version of the evaluation file
   // 評価関数ファイルのバージョンを表す定数
@@ -137,7 +137,9 @@ namespace Eval::NNUE {
       std::memcpy(&result, &v, sizeof(IntType));
       return result;
   }
-}  // namespace Eval::NNUE
+
+} // namespace Eval::NNUE
+} // namespace YaneuraOu
 
 #endif  // defined(EVAL_NNUE)
 

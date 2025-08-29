@@ -19,6 +19,8 @@ YaneuraOu is the World's Strongest Shogi engine(AI player) , WCSC29 1st winner ,
 
 # やねうら王エンジンの大会での戦績
 
+- 2025年 第35回 世界コンピュータ将棋選手権(WCSC35)『水匠』優勝。(探索部やねうら王V8.60改)
+- 2025年 第3回世界将棋AI電竜戦ハードウェア統一戦 『水匠』優勝。(探索部やねうら王V8.60改)
 - 2024年 第34回 世界コンピュータ将棋選手権(WCSC34)『お前、CSA会員にならねーか？』優勝。(探索部やねうら王V8.20 GitHub版)
 - 2024年 第2回 マイナビニュース杯電竜戦ハードウェア統一戦 『水匠』準優勝 (探索部やねうら王V8.10開発版)
 - 2023年 第4回世界将棋AI電竜戦本戦 『水匠』優勝 (探索部やねうら王。やねうらおは、チームメンバーとして参加)
@@ -68,6 +70,7 @@ YaneuraOu is the World's Strongest Shogi engine(AI player) , WCSC29 1st winner ,
 |やねうら王のエンジンオプションについて | [思考エンジンオプション](https://github.com/yaneurao/YaneuraOu/wiki/思考エンジンオプション)|入門~中級|
 |やねうら王詰将棋エンジンについて| [やねうら王詰将棋エンジン](https://github.com/yaneurao/YaneuraOu/wiki/やねうら王詰将棋エンジン)|入門~中級|
 |やねうら王のよくある質問|[よくある質問](https://github.com/yaneurao/YaneuraOu/wiki/よくある質問)|初級~中級|
+|やねうら王のソースコードのルールについて|[CONTRIBUTING.md](CONTRIBUTING.md)|開発者向け|
 |やねうら王の隠し機能 | [隠し機能](https://github.com/yaneurao/YaneuraOu/wiki/隠し機能)|中級~上級|
 |やねうら王の定跡を作る | [定跡の作成](https://github.com/yaneurao/YaneuraOu/wiki/定跡の作成)|中級~上級|
 |やねうら王のUSI拡張コマンドについて | [USI拡張コマンド](https://github.com/yaneurao/YaneuraOu/wiki/USI拡張コマンド)|開発者向け|

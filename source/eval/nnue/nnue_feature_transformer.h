@@ -1,8 +1,8 @@
 ﻿// A class that converts the input features of the NNUE evaluation function
 // NNUE評価関数の入力特徴量の変換を行うクラス
 
-#ifndef _NNUE_FEATURE_TRANSFORMER_H_INCLUDED
-#define _NNUE_FEATURE_TRANSFORMER_H_INCLUDED
+#ifndef CLASSIC_NNUE_FEATURE_TRANSFORMER_H_INCLUDED
+#define CLASSIC_NNUE_FEATURE_TRANSFORMER_H_INCLUDED
 
 #include "../../config.h"
 
@@ -14,6 +14,7 @@
 
 #include <cstring>  // std::memset()
 
+namespace YaneuraOu {
 namespace Eval::NNUE {
 
 // If vector instructions are enabled, we update and refresh the
@@ -83,8 +84,9 @@ class FeatureTransformer {
 	static constexpr IndexType kHalfDimensions = kTransformedFeatureDimensions;
 
 #if defined(VECTOR)
-	static constexpr IndexType kTileHeight = kNumRegs * sizeof(vec_t) / 2;
-	static_assert(kHalfDimensions % kTileHeight == 0, "kTileHeight must divide kHalfDimensions");
+	//static constexpr IndexType kTileHeight = kNumRegs * sizeof(vec_t) / 2;
+	//static_assert(kHalfDimensions % kTileHeight == 0, "kTileHeight must divide kHalfDimensions");
+	// ⇨  AVX-512でこの制約守れないっぽ。
 #endif
 
    public:
@@ -410,7 +412,8 @@ class FeatureTransformer {
 	alignas(kCacheLineSize) WeightType weights_[kHalfDimensions * kInputDimensions];
 };  // class FeatureTransformer
 
-}  // namespace Eval::NNUE
+} // namespace Eval::NNUE
+} // namespace YaneuraOu
 
 #endif  // defined(EVAL_NNUE)
 

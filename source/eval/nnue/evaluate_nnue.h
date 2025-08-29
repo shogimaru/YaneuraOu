@@ -1,8 +1,8 @@
 ﻿// header used in NNUE evaluation function
 // NNUE評価関数で用いるheader
 
-#ifndef NNUE_EVALUATE_NNUE_H_INCLUDED
-#define NNUE_EVALUATE_NNUE_H_INCLUDED
+#ifndef CLASSIC_NNUE_EVALUATE_NNUE_H_INCLUDED
+#define CLASSIC_NNUE_EVALUATE_NNUE_H_INCLUDED
 
 #include "../../config.h"
 
@@ -13,17 +13,10 @@
 //#include "../../misc.h"
 #include "../../memory.h"
 
-// 評価関数のソースコードへの埋め込みをする時は、EVAL_EMBEDDINGをdefineして、
-// ⇓この2つのシンボルを正しく定義するembedded_nnue.cppを書けば良い。
-#if defined(EVAL_EMBEDDING)
-	extern const char*  gEmbeddedNNUEData;
-	extern const size_t gEmbeddedNNUESize;
-#else
-	const char   gEmbeddedNNUEData[1] = {0x0};
-	const size_t gEmbeddedNNUESize = 1;
-#endif
-
+namespace YaneuraOu {
 namespace Eval::NNUE {
+
+	#define EvalFileDefaultName "nn.bin"
 
 	// Hash value of evaluation function structure
 	// 評価関数の構造のハッシュ値
@@ -56,7 +49,8 @@ namespace Eval::NNUE {
 	// 評価関数パラメータを書き込む
 	bool WriteParameters(std::ostream& stream);
 
-}  // namespace Eval::NNUE
+} // namespace Eval::NNUE
+} // namespace YaneuraOu
 
 #endif  // defined(EVAL_NNUE)
 

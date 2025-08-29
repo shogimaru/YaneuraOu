@@ -20,7 +20,9 @@
 #include <string>       // std::string使うので仕方ない
 #include <algorithm>    // std::max()を使うので仕方ない
 #include <limits>		// std::numeric_limitsを使うので仕方ない
-#include <cassert>
+#include <chrono>       // std::chrono
+#include <vector>       // std::vector
+#include <cassert>      // assert
 
 #if defined(_MSC_VER)
 // Disable some silly and noisy warnings from MSVC compiler
@@ -37,6 +39,10 @@
 /// _MSC_VER                Compiler is MSVC
 /// _WIN32                  Building on Windows (any)
 /// _WIN64                  Building on Windows 64 bit
+
+namespace YaneuraOu {
+
+class Position;
 
 // --------------------
 //  型の最小値・最大値
@@ -57,7 +63,7 @@ constexpr size_t  size_min  = (std::numeric_limits<size_t> ::min)();
 // --------------------
 
 // 手番
-enum Color { BLACK=0/*先手*/,WHITE=1/*後手*/,COLOR_NB /* =2 */ , COLOR_ZERO = 0,};
+enum Color : int8_t { BLACK = 0/*先手*/, WHITE = 1/*後手*/, COLOR_NB /* = 2 */ , COLOR_ZERO = 0,};
 
 // 相手番を返す
 constexpr Color operator ~(Color c) { return (Color)(c ^ 1);  }
@@ -73,7 +79,7 @@ std::ostream& operator<<(std::ostream& os, Color c);
 // --------------------
 
 //  例) FILE_3なら3筋。
-enum File : int { FILE_1, FILE_2, FILE_3, FILE_4, FILE_5, FILE_6, FILE_7, FILE_8, FILE_9 , FILE_NB , FILE_ZERO=0 };
+enum File : int8_t { FILE_1, FILE_2, FILE_3, FILE_4, FILE_5, FILE_6, FILE_7, FILE_8, FILE_9 , FILE_NB , FILE_ZERO=0 };
 
 // 正常な値であるかを検査する。assertで使う用。
 constexpr bool is_ok(File f) { return FILE_ZERO <= f && f < FILE_NB; }
@@ -94,7 +100,7 @@ static std::ostream& operator<<(std::ostream& os, File f) { os << (char)('1' + f
 // --------------------
 
 // 例) RANK_4なら4段目。
-enum Rank : int { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_9 , RANK_NB , RANK_ZERO = 0};
+enum Rank : int8_t { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_9 , RANK_NB , RANK_ZERO = 0};
 
 // 正常な値であるかを検査する。assertで使う用。
 constexpr bool is_ok(Rank r) { return RANK_ZERO <= r && r < RANK_NB; }
@@ -130,7 +136,8 @@ static std::ostream& operator<<(std::ostream& os, Rank r) { os << (char)('a' + r
 // 盤上の升目に対応する定数。
 // 盤上右上(１一が0)、左下(９九)が80
 // 方角を表現するときにマイナスの値を使うので符号型である必要がある。
-enum Square : int32_t
+// ⚠ SQ_NB * 2 は、負の数になるからint(SQ_NB)のようなcastが必要。
+enum Square : int8_t
 {
 	// 以下、盤面の右上から左下までの定数。
 	// これを定義していなくとも問題ないのだが、デバッガでSquare型を見たときに
@@ -148,7 +155,7 @@ enum Square : int32_t
 	// ゼロと末尾
 	SQ_ZERO = 0, SQ_NB = 81,
 	SQUARE_NB = SQ_NB,       // Stockfishとの互換性維持のために定義
-	SQ_NONE = SQ_NB,         // Stockfishとの互換性維持のために定義
+	SQ_NONE   = SQ_NB,       // Stockfishとの互換性維持のために定義
 	SQ_NB_PLUS1 = SQ_NB + 1, // 玉がいない場合、SQ_NBに移動したものとして扱うため、配列をSQ_NB+1で確保しないといけないときがあるのでこの定数を用いる。
 
 	// 方角に関する定数。StockfishだとNORTH=北=盤面の下を意味するようだが、
@@ -379,25 +386,22 @@ constexpr int MAX_PLY = MAX_PLY_NUM;
 // 探索深さを表現する型
 using Depth = int;
 
-enum : int {
+// The following DEPTH_ constants are used for TT entries and QS movegen stages. In regular search,
+// TT depth is literal: the search depth (effort) used to make the corresponding TT value.
+// In qsearch, however, TT entries only store the current QS movegen stage (which should thus compare
+// lower than any regular search depth).
+// 静止探索で王手がかかっているときにこれより少ない残り探索深さでの探索した結果が置換表にあってもそれは信用しない
+constexpr Depth DEPTH_QS = 0;
 
-	// The following DEPTH_ constants are used for TT entries and QS movegen stages. In regular search,
-	// TT depth is literal: the search depth (effort) used to make the corresponding TT value.
-	// In qsearch, however, TT entries only store the current QS movegen stage (which should thus compare
-	// lower than any regular search depth).
-	// 静止探索で王手がかかっているときにこれより少ない残り探索深さでの探索した結果が置換表にあってもそれは信用しない
-	DEPTH_QS		    = 0,
+// For TT entries where no searching at all was done (whether regular or qsearch) we use
+// _UNSEARCHED, which should thus compare lower than any QS or regular depth. _ENTRY_OFFSET is used
+// only for the TT entry occupancy check (see tt.cpp), and should thus be lower than _UNSEARCHED.
 
-	// For TT entries where no searching at all was done (whether regular or qsearch) we use
-	// _UNSEARCHED, which should thus compare lower than any QS or regular depth. _ENTRY_OFFSET is used
-	// only for the TT entry occupancy check (see tt.cpp), and should thus be lower than _UNSEARCHED.
+// DEPTH_NONEは探索せずに値を求めたという意味に使う。
+constexpr Depth DEPTH_UNSEARCHED   = -2;
 
-	// DEPTH_NONEは探索せずに値を求めたという意味に使う。
-	DEPTH_UNSEARCHED   = -2,
-
-	// TTの下駄履き用(TTEntryが使われているかどうかのチェックにのみ用いる)
-	DEPTH_ENTRY_OFFSET = -3
-};
+// TTの下駄履き用(TTEntryが使われているかどうかのチェックにのみ用いる)
+constexpr Depth DEPTH_ENTRY_OFFSET = -3;
 
 // --------------------
 //     評価値の性質
@@ -406,7 +410,7 @@ enum : int {
 // searchで探索窓を設定するので、この窓の範囲外の値が返ってきた場合、
 // high fail時はこの値は上界(真の値はこれより小さい)、low fail時はこの値は下界(真の値はこれより大きい)
 // である。
-enum Bound {
+enum Bound : int8_t {
 	BOUND_NONE,  // 探索していない(DEPTH_NONE)ときに、最善手か、静的評価スコアだけを置換表に格納したいときに用いる。
 	BOUND_UPPER, // 上界(真の評価値はこれより小さい) = 詰みのスコアや、nonPVで評価値があまり信用ならない状態であることを表現する。
 	BOUND_LOWER, // 下界(真の評価値はこれより大きい)
@@ -485,7 +489,27 @@ constexpr Value VALUE_NOT_EVALUATED = INT32_MAX;
 constexpr Value mate_in(int ply) { return (Value)(VALUE_MATE - ply); }
 
 // ply手で詰まされるときのスコア
+// 💡 現局面で詰まされているなら、mated_in(1)
 constexpr Value mated_in(int ply) { return (Value)(-VALUE_MATE + ply); }
+
+
+// ValueがVALUE_NONEでなければtrue。
+constexpr bool is_valid(Value value) { return value != VALUE_NONE; }
+
+// Valueが、VALUE_TB_WIN_IN_MAX_PLY以上(詰み確定のスコア)であればtrue。
+constexpr bool is_win(Value value) {
+	assert(is_valid(value));
+	return value >= VALUE_TB_WIN_IN_MAX_PLY;
+}
+
+// Valueが詰まされ確定のスコアより低いならtrue。
+constexpr bool is_loss(Value value) {
+	assert(is_valid(value));
+	return value <= VALUE_TB_LOSS_IN_MAX_PLY;
+}
+
+// Valueが詰み/詰まされ確定のスコアならtrue。
+constexpr bool is_decisive(Value value) { return is_win(value) || is_loss(value); }
 
 
 // --------------------
@@ -496,7 +520,7 @@ constexpr Value mated_in(int ply) { return (Value)(-VALUE_MATE + ply); }
 extern const char* USI_PIECE;
 
 // 駒の種類(先後の区別なし)
-enum PieceType : uint32_t
+enum PieceType : int8_t
 {
 	// 金の順番を飛の後ろにしておく。KINGを8にしておく。
 	// こうすることで、成りを求めるときに pc |= 8;で求まり、かつ、先手の全種類の駒を列挙するときに空きが発生しない。(DRAGONが終端になる)
@@ -531,7 +555,7 @@ enum PieceType : uint32_t
 };
 
 // 駒(先後の区別あり)
-enum Piece : uint32_t
+enum Piece : int8_t
 {
 	NO_PIECE = 0,
 
@@ -680,6 +704,20 @@ enum MoveEnum : uint32_t {
 	MOVE_PROMOTE = 1 << 15,       // 駒成りフラグ
 };
 
+// Stockfishとの互換性を保つために導入。
+// 普通の指し手か成りの指し手かを判定するのに用いる。
+enum MoveType {
+    NORMAL,
+#if STOCKFISH
+    PROMOTION  = 1 << 14,
+    EN_PASSANT = 2 << 14,
+    CASTLING   = 3 << 14
+#else
+    PROMOTION     = MOVE_PROMOTE,
+    DROP          = MOVE_DROP,
+#endif
+};
+
 // 指し手を表現するclass(実体は32bit整数)
 class Move
 {
@@ -736,6 +774,11 @@ public:
 	// 　　これは、この関数は、MovePickerのButterflyHistoryで使うから必要なのだが、そこでは指し手の手番(Color)を別途持っているから。
 	int from_to() const { return int(from_sq() + int(is_drop() ? (SQ_NB - 1) : 0)) * int(SQ_NB) + int(to_sq());}
 
+	// 指し手(Move)のMoveTypeを返す。
+    constexpr MoveType type_of() {
+        return MoveType(data & (MOVE_PROMOTE | MOVE_DROP));
+    }
+
 	// 上記のfrom_toが返す最大値 + 1。
 	static constexpr int FROM_TO_SIZE = int(SQ_NB + 7) * int(SQ_NB);
 
@@ -769,7 +812,10 @@ public:
 	// -- 文字列化
 
 	// USI形式の文字列にする。
-	std::string to_usi_string() const { return ::to_usi_string(*this); }
+	std::string to_usi_string() const { return YaneuraOu::to_usi_string(*this); }
+
+	// USI形式の文字列からMoveに変換する。
+	static Move from_string(const Position& pos, const std::string usi_move);
 
 	// -- unordered_mapなどで比較するときに用いる。operator<()は定義したくないので、こちらを用いる。
 	struct MoveHash {
@@ -806,13 +852,14 @@ public:
 
 	// -- property
 
-	Square from_sq() const { ASSERT_LV3(is_ok()); return Square((data >> 7) & 0x7f); }
-	Square to_sq() const { return Square(data & 0x7f); }
-	bool is_drop() const { return (data & MOVE_DROP) != 0; }
-	bool is_promote() const { return (data & MOVE_PROMOTE) != 0; }
-	PieceType move_dropped_piece() const { return PieceType((data >> 7) & 0x7f); }
+	constexpr Square from_sq() const { return Square((data >> 7) & 0x7f); }
+	constexpr Square to_sq() const { return Square(data & 0x7f); }
+	constexpr bool is_drop() const { return (data & MOVE_DROP) != 0; }
+	constexpr bool is_promote() const { return (data & MOVE_PROMOTE) != 0; }
+	constexpr PieceType move_dropped_piece() const { return PieceType((data >> 7) & 0x7f); }
 
-	int from_to() const { return int(from_sq() + int(is_drop() ? (SQ_NB - 1) : 0)) * int(SQ_NB) + int(to_sq()); }
+	constexpr int from_to() const { return int(from_sq() + int(is_drop() ? (SQ_NB - 1) : 0)) * int(SQ_NB) + int(to_sq()); }
+    constexpr MoveType type_of() { return MoveType(data & (MOVE_PROMOTE | MOVE_DROP)); }
 	constexpr bool is_ok() const { return (data >> 7) != (data & 0x7f); }
 
 	// -- 比較
@@ -837,21 +884,14 @@ public:
 	// -- 文字列化
 
 	// USI形式の文字列にする。
-	std::string to_usi_string() const { return ::to_usi_string(*this); }
+	std::string to_usi_string() const { return YaneuraOu::to_usi_string(*this); }
+
+	// USI形式の文字列からMove16に変換する。
+	static Move16 from_string(const std::string usi_move);
 
 protected:
 	uint16_t data;
 };
-
-// ハッシュ関数(std::unorderd_map<Move16,u32>のようなものを使いたいため)
-namespace std {
-	template<>
-	struct hash<Move16> {
-		size_t operator()(const Move16& m16) const {
-			return hash<u16>()(m16.to_u16());
-		}
-	};
-}
 
 // USI形式で指し手を表示する
 static std::ostream& operator<<(std::ostream& os, Move m)   { os << to_usi_string(m); return os; }
@@ -900,53 +940,6 @@ std::string pretty(Move m);
 // 移動させた駒がわかっているときに指し手をわかりやすい表示形式で表示する。
 std::string pretty(Move m, Piece movedPieceType);
 static std::string pretty(Move m, PieceType movedPieceType) { return pretty(m, (Piece)movedPieceType); }
-
-// Stockfishとの互換性を保つために導入。
-// 普通の指し手か成りの指し手かを判定するのに用いる。
-enum MoveType {
-	NORMAL,
-	PROMOTION = MOVE_PROMOTE,
-	DROP      = MOVE_DROP,
-	//ENPASSANT = 2 << 14,
-	//CASTLING = 3 << 14
-};
-
-// 指し手(Move)のMoveTypeを返す。
-constexpr MoveType type_of(Move m) { return MoveType(m.to_u16() & (MOVE_PROMOTE | MOVE_DROP)); }
-
-// --------------------
-//   拡張された指し手
-// --------------------
-
-// 指し手とオーダリングのためのスコアがペアになっている構造体。
-// オーダリングのときにスコアで並べ替えしたいが、一つになっているほうが並び替えがしやすいのでこうしてある。
-// ⇨ Moveがclassになったので、このclass memberを呼び出したいから、Moveから派生させるように変更になった。
-struct ExtMove : public Move {
-
-	int value;	// 指し手オーダリング(並び替え)のときのスコア(符号つき32bit)
-
-	// Move型から暗黙で代入できる。
-	// ⇨ こうしておけば、MoveList* curに対して *cur++ = move; のように書ける。
-	void operator=(const Move m) { data = m.to_u32(); }
-	// ⇨ ここ、data = m.dataとしようとするとdataはprotectedなのにアクセスできない。なぜ…？
-
-	// 補足 : このクラスの変数をMove型にしたいときは、このクラスの変数を Move(m) のようにすれば良い。
-
-	// Inhibit unwanted implicit conversions to Move
-	// with an ambiguity that yields to a compile error.
-	// 意図しない暗黙のMoveへの変換を防ぎ、あいまいさによってコンパイルエラーを引き起こします。
-
-	// cf. Fix involuntary conversions of ExtMove to Move : https://github.com/official-stockfish/Stockfish/commit/d482e3a8905ee194bda3f67a21dda5132c21f30b
-
-	operator float() const = delete;
-};
-
-// partial_insertion_sort()でExtMoveの並べ替えを行なうので比較オペレーターを定義しておく。
-constexpr bool operator<(const ExtMove& first, const ExtMove& second) {
-	return first.value < second.value;
-}
-
-static std::ostream& operator<<(std::ostream& os, ExtMove m) { os << Move(m) << '(' << m.value << ')'; return os; }
 
 // --------------------
 //       手駒
@@ -1010,11 +1003,11 @@ constexpr u32 hand_exists(Hand hand, PieceType pr) { /* ASSERT_LV2(PIECE_HAND_ZE
 // 歩以外の手駒を持っているか
 constexpr u32 hand_except_pawn_exists(Hand hand) { return hand & (HAND_BIT_MASK ^ PIECE_BIT_MASK2[PAWN]); }
 
-// 手駒にpcをc枚加える
-constexpr void add_hand(Hand &hand, PieceType pr, int c = 1) { hand = (Hand)(hand + PIECE_TO_HAND[pr] * c); }
+// 手駒にpcを1枚加える。
+constexpr void add_hand(Hand &hand, PieceType pr) { hand = Hand(hand + PIECE_TO_HAND[pr]); }
 
-// 手駒からpcをc枚減ずる
-constexpr void sub_hand(Hand &hand, PieceType pr, int c = 1) { hand = (Hand)(hand - PIECE_TO_HAND[pr] * c); }
+// 手駒からpcを1枚減らす。
+constexpr void sub_hand(Hand &hand, PieceType pr) { hand = Hand(hand - PIECE_TO_HAND[pr]); }
 
 
 // 手駒h1のほうがh2より優れているか。(すべての種類の手駒がh2のそれ以上ある)
@@ -1058,128 +1051,11 @@ constexpr bool hand_exceptPawnExists(HandKind hk) { return hk & ~HAND_KIND_PAWN;
 
 #endif
 
-// --------------------
-//    指し手生成器
-// --------------------
+// 平手の開始局面のSFEN文字列。
+// 📝 Stockfishではengine.cppとuci.cppで定義されている。
+extern const std::string StartSFEN;
 
-// 将棋のある局面の合法手の最大数。593らしいが、保険をかけて少し大きめにしておく。
-constexpr int MAX_MOVES = 600;
-
-// 生成する指し手の種類
-enum MOVE_GEN_TYPE
-{
-	//
-	// 注意)
-	// 指し手生成器で生成される指し手はすべてpseudo-legalであるが、
-	// LEGAL/LEGAL_ALL以外は自殺手が含まれることがある。
-	// (pseudo-legalは自殺手も含むので)
-	// 
-	// そのため、do_moveの前にPosition::legal()でのチェックが必要である。
-	//
-
-	NON_CAPTURES,           // 駒を取らない指し手
-	CAPTURES,               // 駒を取る指し手
-
-	NON_CAPTURES_ALL,		// NON_CAPTURES + 歩の不成、大駒の不成で駒を取る手
-	CAPTURES_ALL,			// CAPTURES     + 歩の不成、大駒の不成で駒を取る手
-
-	CAPTURES_PRO_PLUS,      // CAPTURES     + 価値のかなりあると思われる成り(歩だけ)
-	NON_CAPTURES_PRO_MINUS, // NON_CAPTURES - 価値のかなりあると思われる成り(歩だけ)
-
-	CAPTURES_PRO_PLUS_ALL,      // CAPTURES_PRO_PLUS      + 歩の不成、大駒の不成で駒を取る手
-	NON_CAPTURES_PRO_MINUS_ALL, // NON_CAPTURES_PRO_MINUS + 歩の不成、大駒の不成で駒を取らない手
-
-	// note : 歩の不成で駒を取らない指し手は後者に含まれるべきだが、指し手生成の実装が難しくなるので前者に含めることにした。
-	//        オーダリング(movepicker)でなんとかするだろうからそこまで悪くはならないだろうし、普段は
-	//		  GenerateAllLegalMovesがオンにして動かさないから良しとする。
-
-	// BonanzaではCAPTURESに銀以外の成りを含めていたが、Aperyでは歩の成り以外は含めない。
-	// あまり変な成りまで入れるとオーダリングを阻害する。
-	// 本ソースコードでは、NON_CAPTURESとCAPTURESは使わず、CAPTURES_PRO_PLUSとNON_CAPTURES_PRO_MINUSを使う。
-
-	// note : NON_CAPTURESとCAPTURESとの生成される指し手の集合は被覆していない。
-	// note : CAPTURES_PRO_PLUSとNON_CAPTURES_PRO_MINUSとの生成される指し手の集合も被覆していない。
-	// note : CAPTURES_PRO_PLUS_ALLとNON_CAPTURES_PRO_MINUS_ALLとの生成される指し手の集合も被覆していない。
-	// →　被覆させないことで、二段階に指し手生成を分解することが出来る。
-
-	EVASIONS,              // 王手の回避(指し手生成元で王手されている局面であることがわかっているときはこちらを呼び出す)
-	EVASIONS_ALL,          // EVASIONS + 歩の不成なども含む。
-
-	NON_EVASIONS,          // 王手の回避ではない手(指し手生成元で王手されていない局面であることがわかっているときのすべての指し手)
-	NON_EVASIONS_ALL,      // NON_EVASIONS + 歩の不成などを含む。
-
-	// 以下の2つは、pos.legalを内部的に呼び出すので生成するのに時間が少しかかる。棋譜の読み込み時などにしか使わない。
-	LEGAL,                 // 合法手すべて。ただし、2段目の歩・香の不成や角・飛の不成は生成しない。
-	LEGAL_ALL,             // 合法手すべて
-
-	CHECKS,                // 王手となる指し手(歩の不成などは含まない)
-	CHECKS_ALL,            // 王手となる指し手(歩の不成なども含む)
-
-	QUIET_CHECKS,          // 王手となる指し手(歩の不成などは含まない)で、CAPTURESの指し手は含まない指し手
-	QUIET_CHECKS_ALL,      // 王手となる指し手(歩の不成なども含む)でCAPTURESの指し手は含まない指し手
-
-	// QUIET_CHECKS_PRO_MINUS,	  // 王手となる指し手(歩の不成などは含まない)で、CAPTURES_PRO_PLUSの指し手は含まない指し手
-	// QUIET_CHECKS_PRO_MINUS_ALL, // 王手となる指し手(歩の不成なども含む)で、CAPTURES_PRO_PLUSの指し手は含まない指し手
-	// →　これらは実装が難しいので、QUIET_CHECKSで生成してから、歩の成る指し手を除外したほうが良いと思う。
-
-	RECAPTURES,            // 指定升への移動の指し手のみを生成する。(歩の不成などは含まない)
-	RECAPTURES_ALL,        // 指定升への移動の指し手のみを生成する。(歩の不成なども含む)
-
-	QUIETS = NON_CAPTURES, // Stockfishとの互換性向上ためのalias
-};
-
-class Position; // 前方宣言
-
-// 指し手を生成器本体
-// gen_typeとして生成する指し手の種類をシてする。gen_allをfalseにすると歩の不成、香の8段目の不成は生成しない。通常探索中はそれでいいはず。
-// mlist : 指し手を返して欲しい指し手生成バッファのアドレス
-// 返し値 : 生成した指し手の終端
-struct CheckInfo;
-template <MOVE_GEN_TYPE gen_type> ExtMove* generateMoves(const Position& pos, ExtMove* mlist);
-template <MOVE_GEN_TYPE gen_type> ExtMove* generateMoves(const Position& pos, ExtMove* mlist,Square recapSq); // RECAPTURES,RECAPTURES_ALL専用
-
-// MoveGeneratorのwrapper。範囲forで回すときに便利。
-template<MOVE_GEN_TYPE GenType>
-struct MoveList {
-	// 局面をコンストラクタの引数に渡して使う。すると指し手が生成され、lastが初期化されるので、
-	// このclassのbegin(),end()が正常な値を返すようになる。
-	// lastは内部のバッファを指しているので、このクラスのコピーは不可。
-	//
-	// for(auto extmove : MoveList<LEGAL_ALL>(pos)) ...
-	// のような書き方ができる。
-
-	explicit MoveList(const Position& pos) : last(generateMoves<GenType>(pos, mlist)) {}
-
-	// 内部的に持っている指し手生成バッファの先頭
-	const ExtMove* begin() const { return mlist; }
-
-	// 生成された指し手の末尾のひとつ先
-	const ExtMove* end() const { return last; }
-
-	// 生成された指し手のなかに引数で指定された指し手が含まれているかの判定。
-	// ASSERTなどで用いる。遅いので通常探索等では用いないこと。
-	bool contains(Move move) const {
-		return std::find(begin(), end(), move) != end();
-	}
-
-	// 生成された指し手の数
-	size_t size() const { return last - mlist; }
-
-	// i番目の要素を返す
-	const ExtMove at(size_t i) const { ASSERT_LV3(i < size()); return begin()[i]; }
-
-private:
-	// 指し手生成バッファも自前で持っている。
-	ExtMove mlist[MAX_MOVES], *last;
-};
-
-// --------------------
-//       置換表
-// --------------------
-
-// 局面のハッシュキー
-// 盤面(盤上の駒 + 手駒)に対して、Zobrist Hashでそれに対応する値を計算する。
-using Key = uint64_t;
+// 💡 ここにあった指し手生成に関するコードは、movegen.hに移動した。
 
 // --------------------
 //        探索
@@ -1194,7 +1070,15 @@ enum EnteringKingRule
 	EKR_27_POINT,        // 27点法 = CSAルール(先手28点、後手27点)
 	EKR_27_POINT_H,      // 27点法 , 駒落ち対応
 	EKR_TRY_RULE,        // トライルール
+	EKR_NULL,            // 未設定
 };
+
+// エンジンオプションの入玉ルールに関する文字列
+extern std::vector<std::string> EKR_STRINGS;
+
+// ekr_rulesで定義されている入玉ルール文字列をEnteringKingRule型に変換する。
+extern EnteringKingRule to_entering_king_rule(const std::string& rule);
+
 
 // 千日手の状態
 enum RepetitionState
@@ -1224,21 +1108,21 @@ static Value draw_value(RepetitionState rs, Color c) { /* ASSERT_LV3(is_ok(rs));
 //      評価関数
 // --------------------
 
+class OptionsMap;
+
 namespace Eval
 {
-	// BonanzaでKKP/KPPと言うときのP(Piece)を表現する型。
-	// AVX2を用いて評価関数を最適化するときに32bitでないと困る。
-	// AVX2より前のCPUではこれは16bitでも構わないのだが、
-	// 　1) 16bitだと32bitだと思いこんでいてオーバーフローさせてしまうコードを書いてしまうことが多々あり、保守が困難。
-	// 　2) ここが32bitであってもそんなに速度低下しないし、それはSSE4.2以前に限るから許容範囲。
-	// という2つの理由から、32bitに固定する。
-	enum BonaPiece : int32_t;
 
-	// 評価関数本体。
-	// 戻り値は、
-	//  abs(value) < =VALUE_MAX_EVAL
-	// を満たす。
-	Value evaluate(const Position& pos);
+// BonanzaでKKP/KPPと言うときのP(Piece)を表現する型。
+/*
+    📓 AVX2を用いて評価関数を最適化するときに32bitでないと困る。
+		AVX2より前のCPUではこれは16bitでも構わないのだが、
+ 　		1) 16bitだと32bitだと思いこんでいてオーバーフローさせてしまうコードを書いてしまうことが多々あり、保守が困難。
+	 　	2) ここが32bitであってもそんなに速度低下しないし、それはSSE4.2以前に限るから許容範囲。
+		という2つの理由から、32bitに固定する。
+*/
+enum BonaPiece : int32_t;
+
 }
 
 // --------------------
@@ -1255,10 +1139,42 @@ namespace Test
 }
 
 // --------------------
+//      Engine
+// --------------------
+
+// 思考エンジンinterface
+class IEngine;
+
+// thread管理class
+class ThreadPool;
+
+// EngineFuncRegisterで登録されたEngineのうち、priorityの一番高いエンジンを起動する。
+void run_engine_entry();
+
+} // namespace YaneuraOu
+
+// --------------------
 //  operators and macros
 // --------------------
 
+// ハッシュ関数(std::unorderd_map<Move16,u32>のようなものを使いたいため)
+// ⚠ これはglobal namespaceで定義しないと駄目。
+template<>
+struct std::hash<YaneuraOu::Move16> {
+	size_t operator()(const YaneuraOu::Move16& m16) const {
+		return std::hash<YaneuraOu::u16>()(m16.to_u16());
+	}
+};
+
 #include "extra/macros.h"
+
+// TimePointの定義。💡Stockfishではmisc.hにある。
+typedef std::chrono::milliseconds::rep TimePoint;
+static_assert(sizeof(TimePoint) == sizeof(int64_t), "TimePoint should be 64 bits");
+
+// 自作エンジンのEntry Point。
+// 使い方は自作エンジンのサンプルであるUSER_ENGINEの user-engine/user-search.cpp を参考にすること。
+extern void engine_main();
 
 
 #endif // #ifndef _TYPES_H_INCLUDED

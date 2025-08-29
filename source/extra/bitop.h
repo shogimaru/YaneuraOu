@@ -45,6 +45,8 @@
 #endif
 #endif
 
+namespace YaneuraOu {
+
 // ----------------------------
 //      type define(uint , sint)
 // ----------------------------
@@ -196,11 +198,6 @@ FORCE_INLINE int MSB32(const u32 v) { ASSERT_LV3(v != 0); return 31 ^ __builtin_
 FORCE_INLINE int MSB64(const u64 v) { ASSERT_LV3(v != 0); return 63 ^ __builtin_clzll(v); }
 
 #else
-
-// FORCE_INLINE int LSB32(const u32 v) { ASSERT_LV3(v != 0); return __builtin_ctzll(v); }
-// FORCE_INLINE int LSB64(const u64 v) { ASSERT_LV3(v != 0); return __builtin_ctzll(v); }
-// FORCE_INLINE int MSB32(const u32 v) { ASSERT_LV3(v != 0); return 63 ^ __builtin_clzll(v); }
-// FORCE_INLINE int MSB64(const u64 v) { ASSERT_LV3(v != 0); return 63 ^ __builtin_clzll(v); }
 
 // software emulationによるbitscan forward(やや遅い)
 FORCE_INLINE s32 LSB32(u32 v) { ASSERT_LV3(v != 0); return POPCNT32((v & (-v)) - 1); }
@@ -379,5 +376,7 @@ inline uint64_t bswap64(uint64_t u) {
 		((u & 0x00000000000000FFu) << 56u);
 #endif
 }
+
+} // namespace YaneuraOu
 
 #endif

@@ -45,11 +45,6 @@ YANEURAOU_EDITION = YANEURAOU_ENGINE_NNUE
 #YANEURAOU_EDITION = YANEURAOU_MATE_ENGINE
 #YANEURAOU_EDITION = USER_ENGINE
 
-# やねうら王のcluster機能を使いたいなら、これもdefineする。(define if you want to use YO-cluster)
-YO_CLUSTER = OFF
-#YO_CLUSTER = ON
-
-
 # ターゲットCPU (target cpu)
 
 # 利用できるCPU拡張命令を指定する。
@@ -165,7 +160,7 @@ EVAL_EMBEDDING = OFF
 ifneq (,$(findstring em++,$(COMPILER)))
 	CPPFLAGS += -O2
 else
-	CPPFLAGS += -Ofast
+	CPPFLAGS += -O3 -ffast-math
 endif
 
 # デバッガーを使わないなら、NDEBUGをdefineする。
@@ -340,19 +335,23 @@ SOURCES  = \
 	movegen.cpp                                                                \
 	position.cpp                                                               \
 	usi.cpp                                                                    \
-	usi_option.cpp                                                             \
+	usioption.cpp                                                              \
 	thread.cpp                                                                 \
 	tt.cpp                                                                     \
 	movepick.cpp                                                               \
 	timeman.cpp                                                                \
 	memory.cpp                                                                 \
+	engine.cpp                                                                 \
+	search.cpp                                                                 \
+	score.cpp                                                                  \
+	benchmark.cpp                                                              \
+	tune.cpp                                                                   \
 	book/book.cpp                                                              \
 	book/apery_book.cpp                                                        \
 	book/policybook.cpp                                                        \
 	extra/bitop.cpp                                                            \
 	extra/long_effect.cpp                                                      \
 	extra/sfen_packer.cpp                                                      \
-	extra/super_sort.cpp                                                       \
 	mate/mate.cpp                                                              \
 	mate/mate1ply_without_effect.cpp                                           \
 	mate/mate1ply_with_effect.cpp                                              \
@@ -364,8 +363,7 @@ SOURCES  = \
 	eval/material/evaluate_material.cpp                                        \
 	testcmd/unit_test.cpp                                                      \
 	testcmd/mate_test_cmd.cpp                                                  \
-	testcmd/normal_test_cmd.cpp                                                \
-	testcmd/benchmark.cpp
+	testcmd/normal_test_cmd.cpp                                                
 
 CUDA_SOURCES =
 
@@ -381,7 +379,7 @@ ifeq (,)
 	SOURCES  +=                                                                \
 		book/makebook.cpp                                                      \
 		book/makebook2015.cpp                                                  \
-		book/makebook2023.cpp                                                  \
+		book/makebook2025.cpp                                                  \
 		learn/learner.cpp                                                      \
 		learn/learning_tools.cpp                                               \
 		learn/multi_think.cpp
@@ -462,7 +460,9 @@ ifneq (,$(findstring YANEURAOU_ENGINE_DEEP,$(YANEURAOU_EDITION)))
 		engine/dlshogi-engine/UctSearch.cpp                             \
 		engine/dlshogi-engine/Node.cpp                                  \
 		engine/dlshogi-engine/PvMateSearch.cpp                          \
-		engine/dlshogi-engine/YaneuraOu_dlshogi_bridge.cpp
+		engine/dlshogi-engine/FukauraOuEngine.cpp                       \
+		engine/dlshogi-engine/SearchOptions.cpp
+
 endif
 
 ifneq (,$(findstring YANEURAOU_ENGINE_NNUE,$(YANEURAOU_EDITION)))
@@ -542,16 +542,6 @@ ifneq ($(ENGINE_NAME),)
 	CPPFLAGS += -DENGINE_NAME_FROM_MAKEFILE=$(ENGINE_NAME)
 endif
 
-ifeq ($(YO_CLUSTER),ON)
-	SOURCES += \
-		engine/yo-cluster/ClusterCommon.cpp       \
-		engine/yo-cluster/ProcessNegotiator.cpp   \
-		engine/yo-cluster/EngineNegotiator.cpp    \
-		engine/yo-cluster/ClusterObserver.cpp     \
-		engine/yo-cluster/ClusterStrategy.cpp
-	CPPFLAGS += -DUSE_YO_CLUSTER
-endif
-
 
 # 開発用branch
 ifneq (,$(findstring dev,$(ENGINE_BRANCH)))
@@ -561,7 +551,7 @@ endif
 
 # abe
 ifneq (,$(findstring abe,$(ENGINE_BRANCH)))
-	CPPFLAGS += -DPV_OUTPUT_DRAW_ONLY -DFORCE_BIND_THIS_THREAD
+	CPPFLAGS += -DPV_OUTPUT_DRAW_ONLY
 endif
 
 

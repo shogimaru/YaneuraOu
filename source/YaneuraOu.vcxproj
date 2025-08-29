@@ -366,7 +366,7 @@
     <Import Project="props\YaneuraOu-common.props" />
     <Import Project="props\YaneuraOuSolution-debug-x64.props" />
     <Import Project="props\YaneuraOuCpu-x64-avx2.props" />
-    <Import Project="$(CUDA_PATH_V12_3)\extras\visual_studio_integration\MSBuildExtensions\CUDA 12.3.props" />
+    <Import Project="$(CUDA_PATH_V12_8)\extras\visual_studio_integration\MSBuildExtensions\CUDA 12.8.props" />
     <Import Project="props\YaneuraOuEdition-Deep-TensorRT.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-Deep-ORT-CPU|x64'" Label="PropertySheets">
@@ -395,7 +395,7 @@
     <Import Project="props\YaneuraOu-common.props" />
     <Import Project="props\YaneuraOuSolution-release-x64.props" />
     <Import Project="props\YaneuraOuCpu-x64-avx2.props" />
-    <Import Project="$(CUDA_PATH_V12_3)\extras\visual_studio_integration\MSBuildExtensions\CUDA 12.3.props" />
+    <Import Project="$(CUDA_PATH_V12_8)\extras\visual_studio_integration\MSBuildExtensions\CUDA 12.8.props" />
     <Import Project="props\YaneuraOuEdition-Deep-TensorRT.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-NNUE-LEARN|x64'" Label="PropertySheets">
@@ -585,25 +585,23 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="benchmark.h" />
     <ClInclude Include="bitboard.h" />
     <ClInclude Include="book\apery_book.h" />
     <ClInclude Include="book\book.h" />
     <ClInclude Include="book\policybook.h" />
     <ClInclude Include="config.h" />
-    <ClInclude Include="engine\dlshogi-engine\dlshogi_min.h" />
-    <ClInclude Include="engine\dlshogi-engine\dlshogi_types.h" />
-    <ClInclude Include="engine\dlshogi-engine\misc\fastmath.h" />
+    <ClInclude Include="engine.h" />
     <ClInclude Include="engine\dlshogi-engine\dlshogi_searcher.h" />
+    <ClInclude Include="engine\dlshogi-engine\dlshogi_types.h" />
+    <ClInclude Include="engine\dlshogi-engine\FukauraOuEngine.h" />
+    <ClInclude Include="engine\dlshogi-engine\misc\fastmath.h" />
     <ClInclude Include="engine\dlshogi-engine\Node.h" />
     <ClInclude Include="engine\dlshogi-engine\PrintInfo.h" />
     <ClInclude Include="engine\dlshogi-engine\PvMateSearch.h" />
+    <ClInclude Include="engine\dlshogi-engine\SearchOptions.h" />
     <ClInclude Include="engine\dlshogi-engine\UctSearch.h" />
-    <ClInclude Include="engine\yaneuraou-engine\yaneuraou-param.h" />
-    <ClInclude Include="engine\yo-cluster\ClusterCommon.h" />
-    <ClInclude Include="engine\yo-cluster\ClusterObserver.h" />
-    <ClInclude Include="engine\yo-cluster\ClusterStrategy.h" />
-    <ClInclude Include="engine\yo-cluster\EngineNegotiator.h" />
-    <ClInclude Include="engine\yo-cluster\ProcessNegotiator.h" />
+    <ClInclude Include="engine\yaneuraou-engine\yaneuraou-search.h" />
     <ClInclude Include="evaluate.h" />
     <ClInclude Include="eval\deep\nn_types.h" />
     <ClInclude Include="eval\deep\nn.h" />
@@ -657,11 +655,24 @@
     <ClInclude Include="eval\nnue\trainer\trainer_feature_transformer.h" />
     <ClInclude Include="eval\nnue\trainer\trainer_input_slice.h" />
     <ClInclude Include="eval\nnue\trainer\trainer_sum.h" />
+    <ClInclude Include="eval\sfnn\features\half_ka_v2_hm.h" />
+    <ClInclude Include="eval\sfnn\layers\affine_transform.h" />
+    <ClInclude Include="eval\sfnn\layers\affine_transform_sparse_input.h" />
+    <ClInclude Include="eval\sfnn\layers\clipped_relu.h" />
+    <ClInclude Include="eval\sfnn\layers\sqr_clipped_relu.h" />
+    <ClInclude Include="eval\sfnn\network.h" />
+    <ClInclude Include="eval\sfnn\nnue_accumulator.h" />
+    <ClInclude Include="eval\sfnn\nnue_architecture.h" />
+    <ClInclude Include="eval\sfnn\nnue_common.h" />
+    <ClInclude Include="eval\sfnn\nnue_feature_transformer.h" />
+    <ClInclude Include="eval\sfnn\nnue_misc.h" />
+    <ClInclude Include="eval\sfnn\simd.h" />
     <ClInclude Include="extra\all.h" />
     <ClInclude Include="extra\bitop.h" />
     <ClInclude Include="extra\key128.h" />
     <ClInclude Include="extra\long_effect.h" />
     <ClInclude Include="extra\macros.h" />
+    <ClInclude Include="history.h" />
     <ClInclude Include="learn\half_float.h" />
     <ClInclude Include="learn\learn.h" />
     <ClInclude Include="learn\learning_tools.h" />
@@ -670,41 +681,45 @@
     <ClInclude Include="mate\mate_move_picker.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="misc.h" />
+    <ClInclude Include="movegen.h" />
     <ClInclude Include="movepick.h" />
     <ClInclude Include="numa.h" />
+    <ClInclude Include="perft.h" />
+    <ClInclude Include="score.h" />
+    <ClInclude Include="timeman.h" />
+    <ClInclude Include="tracer.h" />
     <ClInclude Include="search.h" />
     <ClInclude Include="testcmd\unit_test.h" />
     <ClInclude Include="thread_win32_osx.h" />
+    <ClInclude Include="tune.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="position.h" />
     <ClInclude Include="thread.h" />
     <ClInclude Include="tt.h" />
     <ClInclude Include="usi.h" />
-    <ClInclude Include="usi_option.h" />
+    <ClInclude Include="usioption.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="benchmark.cpp" />
     <ClCompile Include="bitboard.cpp" />
     <ClCompile Include="book\apery_book.cpp" />
     <ClCompile Include="book\book.cpp" />
     <ClCompile Include="book\makebook.cpp" />
     <ClCompile Include="book\makebook2015.cpp" />
-    <ClCompile Include="book\makebook2023.cpp" />
+    <ClCompile Include="book\makebook2025.cpp" />
     <ClCompile Include="book\policybook.cpp" />
+    <ClCompile Include="engine.cpp" />
     <ClCompile Include="engine\dlshogi-engine\dlshogi_searcher.cpp" />
+    <ClCompile Include="engine\dlshogi-engine\FukauraOuEngine.cpp" />
+    <ClCompile Include="engine\dlshogi-engine\Node.cpp" />
     <ClCompile Include="engine\dlshogi-engine\PrintInfo.cpp" />
     <ClCompile Include="engine\dlshogi-engine\PvMateSearch.cpp" />
+    <ClCompile Include="engine\dlshogi-engine\SearchOptions.cpp" />
     <ClCompile Include="engine\dlshogi-engine\UctSearch.cpp" />
-    <ClCompile Include="engine\dlshogi-engine\Node.cpp" />
-    <ClCompile Include="engine\dlshogi-engine\YaneuraOu_dlshogi_bridge.cpp" />
     <ClCompile Include="engine\tanuki-mate-engine\tanuki-mate-search.cpp" />
     <ClCompile Include="engine\user-engine\user-search.cpp" />
     <ClCompile Include="engine\yaneuraou-engine\yaneuraou-search.cpp" />
     <ClCompile Include="engine\yaneuraou-mate-engine\yaneuraou-mate-search.cpp" />
-    <ClCompile Include="engine\yo-cluster\ClusterCommon.cpp" />
-    <ClCompile Include="engine\yo-cluster\ClusterStrategy.cpp" />
-    <ClCompile Include="engine\yo-cluster\EngineNegotiator.cpp" />
-    <ClCompile Include="engine\yo-cluster\ProcessNegotiator.cpp" />
-    <ClCompile Include="engine\yo-cluster\ClusterObserver.cpp" />
     <ClCompile Include="eval\deep\nn_types.cpp" />
     <ClCompile Include="eval\deep\nn.cpp" />
     <ClCompile Include="eval\deep\nn_onnx_runtime.cpp" />
@@ -728,10 +743,13 @@
     <ClCompile Include="eval\nnue\features\p.cpp" />
     <ClCompile Include="eval\nnue\features\pe9.cpp" />
     <ClCompile Include="eval\nnue\nnue_test_command.cpp" />
+    <ClCompile Include="eval\sfnn\features\half_ka_v2_hm.cpp" />
+    <ClCompile Include="eval\sfnn\network.cpp" />
+    <ClCompile Include="eval\sfnn\nnue_accumulator.cpp" />
+    <ClCompile Include="eval\sfnn\nnue_misc.cpp" />
     <ClCompile Include="extra\bitop.cpp" />
     <ClCompile Include="extra\long_effect.cpp" />
     <ClCompile Include="extra\sfen_packer.cpp" />
-    <ClCompile Include="extra\super_sort.cpp" />
     <ClCompile Include="learn\learner.cpp" />
     <ClCompile Include="learn\learning_tools.cpp" />
     <ClCompile Include="learn\multi_think.cpp" />
@@ -745,17 +763,19 @@
     <ClCompile Include="misc.cpp" />
     <ClCompile Include="movegen.cpp" />
     <ClCompile Include="movepick.cpp" />
-    <ClCompile Include="testcmd\benchmark.cpp" />
+    <ClCompile Include="score.cpp" />
+    <ClCompile Include="search.cpp" />
     <ClCompile Include="testcmd\mate_test_cmd.cpp" />
     <ClCompile Include="testcmd\normal_test_cmd.cpp" />
     <ClCompile Include="testcmd\unit_test.cpp" />
     <ClCompile Include="timeman.cpp" />
+    <ClCompile Include="tune.cpp" />
     <ClCompile Include="types.cpp" />
     <ClCompile Include="position.cpp" />
     <ClCompile Include="thread.cpp" />
     <ClCompile Include="tt.cpp" />
     <ClCompile Include="usi.cpp" />
-    <ClCompile Include="usi_option.cpp" />
+    <ClCompile Include="usioption.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\script\readme.txt" />
@@ -772,11 +792,12 @@
     <None Include="..\script\engine_invoker5.py" />
     <CustomBuild Include="eval\deep\unpack.cu">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release-Deep-TensorRT|x64'">"$(CUDA_PATH_V12_3)\bin\nvcc.exe" --use-local-env -ccbin "$(VC_ExecutablePath_x64)" -std=c++17 -x cu --keep-dir ..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget) -maxrregcount=0 --machine 64 --compile -cudart static -DNDEBUG -D_CONSOLE -D_UNICODE -DUNICODE -DYANEURAOU_ENGINE_DEEP -DTENSOR_RT -Xcompiler "/EHsc /W3 /nologo /O2 /Fd..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget)\vc143.pdb /FS /MT" -o "..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget)\%(Filename)%(Extension).obj" "%(FullPath)"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release-Deep-TensorRT|x64'">"$(CUDA_PATH_V12_8)\bin\nvcc.exe" --use-local-env -ccbin "$(VC_ExecutablePath_x64)" -std=c++17 -x cu --keep-dir ..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget) -maxrregcount=0 --machine 64 --compile -cudart static -DNDEBUG -D_CONSOLE -D_UNICODE -DUNICODE -DYANEURAOU_ENGINE_DEEP -DTENSOR_RT -Xcompiler "/EHsc /W3 /nologo /O2 /Fd..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget)\vc143.pdb /FS /MT" -o "..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget)\%(Filename)%(Extension).obj" "%(FullPath)"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release-Deep-TensorRT|x64'">..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget)\%(Filename)%(Extension).obj</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug-Deep-TensorRT|x64'">"$(CUDA_PATH_V12_3)\bin\nvcc.exe" --use-local-env -ccbin "$(VC_ExecutablePath_x64)" -std=c++17 -x cu -G --keep-dir ..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget) -maxrregcount=0 --machine 64 --compile -cudart static -g -D_DEBUG -D_CONSOLE -D_UNICODE -DUNICODE -DYANEURAOU_ENGINE_DEEP -DTENSOR_RT -Xcompiler "/EHsc /W3 /nologo /Od /Fd..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget)\vc143.pdb /FS /Zi /RTC1 /MTd" -o "..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget)\%(Filename)%(Extension).obj" "%(FullPath)"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug-Deep-TensorRT|x64'">"$(CUDA_PATH_V12_8)\bin\nvcc.exe" --use-local-env -ccbin "$(VC_ExecutablePath_x64)" -std=c++17 -x cu -G --keep-dir ..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget) -maxrregcount=0 --machine 64 --compile -cudart static -g -D_DEBUG -D_CONSOLE -D_UNICODE -DUNICODE -DYANEURAOU_ENGINE_DEEP -DTENSOR_RT -Xcompiler "/EHsc /W3 /nologo /Od /Fd..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget)\vc143.pdb /FS /Zi /RTC1 /MTd" -o "..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget)\%(Filename)%(Extension).obj" "%(FullPath)"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug-Deep-TensorRT|x64'">..\$(Platform)\$(Configuration)\obj\$(YaneuraOuDbgPrefix)$(YaneuraOuCpuTarget)\%(Filename)%(Extension).obj</Outputs>
     </CustomBuild>
+    <None Include=".clang-format" />
     <None Include="Makefile" />
     <None Include="packages.config" />
     <ClInclude Include="eval\deep\unpack.cuh">

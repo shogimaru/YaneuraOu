@@ -1,7 +1,7 @@
-﻿#include "memory.h"
-#include "usi.h"
+﻿#include <cstdlib>
 
-#include <cstdlib>
+#include "memory.h"
+#include "misc.h"
 
 #if __has_include("features.h")
     #include <features.h>
@@ -46,8 +46,7 @@ using AdjustTokenPrivileges_t =
 }
 #endif
 
-
-//namespace Stockfish {
+namespace YaneuraOu {
 
 // Wrappers for systems where the c++17 implementation does not guarantee the
 // availability of aligned_alloc(). Memory allocated with std_aligned_alloc()
@@ -95,11 +94,6 @@ static void* aligned_large_pages_alloc_windows([[maybe_unused]] size_t allocSize
     #if !defined(_WIN64)
     return nullptr;
     #else
-
-	// ※ やねうら王独自拡張
-	// LargePageはエンジンオプションにより無効化されているなら何もせずに返る。
-	if (!Options["LargePageEnable"])
-		return nullptr;
 
     HANDLE hProcessToken{};
     LUID   luid{};
@@ -177,6 +171,7 @@ static void* aligned_large_pages_alloc_windows([[maybe_unused]] size_t allocSize
     #endif
 }
 
+// 初回のlarge pageのallocationに対してメッセージを出力するためのフラグ。
 bool first_large_pages_allocation = true;
 
 void* aligned_large_pages_alloc(size_t allocSize) {
@@ -196,6 +191,8 @@ void* aligned_large_pages_alloc(size_t allocSize) {
         mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	else
 	{
+		// large pageのallocationに成功した。
+		
 		if (first_large_pages_allocation)
 		{
 			// Large Pagesを確保した旨を出力。
@@ -281,4 +278,5 @@ void aligned_large_pages_free(void* mem) {
 void aligned_large_pages_free(void* mem) { std_aligned_free(mem); }
 
 #endif
-//}  // namespace Stockfish
+
+} // namespace YaneuraOu

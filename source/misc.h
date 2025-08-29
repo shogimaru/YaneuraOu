@@ -18,18 +18,41 @@
 #include "types.h"
 #include "usibus.h"
 
+namespace YaneuraOu {
+
+class OptionsMap;
+class Engine;
+
 // --------------------
-//  engine info
+//     engine info
 // --------------------
+
+// エンジンのバージョン情報を返す。
+std::string engine_version_info();
 
 // "USI"コマンドに応答するために表示する。
-const std::string engine_info();
+//
+//  to_usi : これがtrueのときは、"usi"コマンドに対する応答として呼び出されたという意味。
+//           これがfalseのときは、起動直後の出力用。
+//        	 ⚠ やねうら王ではMultiEngineを採用しており、
+//			 起動直後ではエンジン名が確定しないから出力できない。
+// 
+// 🤔 やねうら王では、以下のように変更する。
+// engine_name    : エンジン名
+// engine_author  : エンジンの作者名
+// engine_version : エンジンのバージョン
+// eval_name      : 評価関数名
+std::string engine_info(const std::string& engine_name,
+						const std::string& engine_author,
+                        const std::string& engine_version,
+                        const std::string& eval_name);
 
 // 使用したコンパイラについての文字列を返す。
-const std::string compiler_info();
+std::string compiler_info();
 
 // config.hで設定した値などについて出力する。
-const std::string config_info();
+std::string config_info();
+
 
 // --------------------
 //    prefetch命令
@@ -69,32 +92,45 @@ void dbg_print();
 //  Time[ms] wrapper
 // --------------------
 
+#if STOCKFISH
 // ms単位での時間計測しか必要ないのでこれをTimePoint型のように扱う。
-typedef std::chrono::milliseconds::rep TimePoint;
-static_assert(sizeof(TimePoint) == sizeof(int64_t), "TimePoint should be 64 bits");
+// TimePointの定義。💡 やねうら王では、types.hに移動。
+//using TimePoint = std::chrono::milliseconds::rep;  // A value in milliseconds
+//static_assert(sizeof(TimePoint) == sizeof(int64_t), "TimePoint should be 64 bits");
+#endif
+
 
 // ms単位で現在時刻を返す
 static TimePoint now() {
-	return std::chrono::duration_cast<std::chrono::milliseconds>
-		(std::chrono::steady_clock::now().time_since_epoch()).count();
-		//(std::chrono::steady_clock::now().time_since_epoch()).count() * 10;
-		// 10倍早く時間が経過するようにして、持ち時間制御のテストなどを行う。
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    //(std::chrono::steady_clock::now().time_since_epoch()).count() * 10;
+    // 💡 10倍早く時間が経過するようにして、持ち時間制御のテストなどを行う時は↑このように10をかけ算する。
 }
 
-// --------------------
-//    HashTable
-// --------------------
+#if STOCKFISH
 
-// このclass、Stockfishにあるんだけど、
-// EvalHashとしてLargePageを用いる同等のclassをすでに用意しているので、使わない。
+#else
+// 🌈 時間計測用。経過時間を計測する。
+struct ElapsedTimer {
+    ElapsedTimer();
 
-//template<class Entry, int Size>
-//struct HashTable {
-//	Entry* operator[](Key key) { return &table[(uint32_t)key & (Size - 1)]; }
-//
-//private:
-//	std::vector<Entry> table = std::vector<Entry>(Size);
-//};
+    // startTimeを引数sで初期化する。
+    ElapsedTimer(TimePoint s);
+
+    // タイマーを初期化する。以降、elapsed()でinit()してからの経過時間が得られる。
+    void reset();
+    // TimePointを指定して初期化する。この時刻からの経過時間が求められるようになる。
+    void reset(TimePoint s);
+
+    // resetしてからの経過時間。
+    TimePoint elapsed() const;
+
+   private:
+    // reset()された時刻。
+    TimePoint startTime;
+};
+
+#endif
 
 // --------------------
 //  sync_out/sync_endl
@@ -108,34 +144,18 @@ static TimePoint now() {
 // sync_out << "bestmove " << m << sync_endl;
 // のように用いる。
 
-enum SyncCout { IO_LOCK, IO_UNLOCK };
+enum SyncCout {
+	IO_LOCK,
+	IO_UNLOCK
+};
 std::ostream& operator<<(std::ostream&, SyncCout);
 
 #define sync_cout usi::cmd << (IO_LOCK)
 #define sync_endl std::endl << IO_UNLOCK
 
-// --------------------
-//   from Stockfish
-// --------------------
-
-// Stockfish にあるけどやねうら王では使ってない。
-
-//// align_ptr_up() : get the first aligned element of an array.
-//// ptr must point to an array of size at least `sizeof(T) * N + alignment` bytes,
-//// where N is the number of elements in the array.
-//template <uintptr_t Alignment, typename T>
-//T* align_ptr_up(T* ptr)
-//{
-//  static_assert(alignof(T) < Alignment);
-//
-//  const uintptr_t ptrint = reinterpret_cast<uintptr_t>(reinterpret_cast<char*>(ptr));
-//  return reinterpret_cast<T*>(reinterpret_cast<char*>((ptrint + (Alignment - 1)) / Alignment * Alignment));
-//}
-//
-//
-//// IsLittleEndian : true if and only if the binary is compiled on a little endian machine
-//static inline const union { uint32_t i; char c[4]; } Le = { 0x01020304 };
-//static inline const bool IsLittleEndian = (Le.c[0] == 4);
+// sync_cout / sync_endlと同等のlock～unlock。
+void sync_cout_start();
+void sync_cout_end();
 
 // --------------------
 //      ValueList
@@ -161,6 +181,104 @@ public:
 private:
 	T           values_[MaxSize];
 	std::size_t size_ = 0;
+};
+
+// --------------------
+//      MultiArray
+// --------------------
+
+template<typename T, std::size_t Size, std::size_t... Sizes>
+class MultiArray;
+
+namespace Detail {
+
+	template<typename T, std::size_t Size, std::size_t... Sizes>
+	struct MultiArrayHelper {
+		using ChildType = MultiArray<T, Sizes...>;
+	};
+
+	template<typename T, std::size_t Size>
+	struct MultiArrayHelper<T, Size> {
+		using ChildType = T;
+	};
+
+	template<typename To, typename From>
+	constexpr bool is_strictly_assignable_v =
+		std::is_assignable_v<To&, From> && (std::is_same_v<To, From> || !std::is_convertible_v<From, To>);
+
+}
+
+// MultiArray is a generic N-dimensional array.
+// The template parameters (Size and Sizes) encode the dimensions of the array.
+
+// MultiArray は汎用的な N 次元配列です。
+// テンプレートパラメータ (Size と Sizes) が配列の次元を表します。
+
+template<typename T, std::size_t Size, std::size_t... Sizes>
+class MultiArray {
+	using ChildType = typename Detail::MultiArrayHelper<T, Size, Sizes...>::ChildType;
+	using ArrayType = std::array<ChildType, Size>;
+	ArrayType data_;
+
+public:
+	using value_type = typename ArrayType::value_type;
+	using size_type = typename ArrayType::size_type;
+	using difference_type = typename ArrayType::difference_type;
+	using reference = typename ArrayType::reference;
+	using const_reference = typename ArrayType::const_reference;
+	using pointer = typename ArrayType::pointer;
+	using const_pointer = typename ArrayType::const_pointer;
+	using iterator = typename ArrayType::iterator;
+	using const_iterator = typename ArrayType::const_iterator;
+	using reverse_iterator = typename ArrayType::reverse_iterator;
+	using const_reverse_iterator = typename ArrayType::const_reverse_iterator;
+
+	constexpr auto& at(size_type index) noexcept { return data_.at(index); }
+	constexpr const auto& at(size_type index) const noexcept { return data_.at(index); }
+
+	constexpr auto& operator[](size_type index) noexcept { return data_[index]; }
+	constexpr const auto& operator[](size_type index) const noexcept { return data_[index]; }
+
+	constexpr auto& front() noexcept { return data_.front(); }
+	constexpr const auto& front() const noexcept { return data_.front(); }
+	constexpr auto& back() noexcept { return data_.back(); }
+	constexpr const auto& back() const noexcept { return data_.back(); }
+
+	auto* data() { return data_.data(); }
+	const auto* data() const { return data_.data(); }
+
+	constexpr auto begin() noexcept { return data_.begin(); }
+	constexpr auto end() noexcept { return data_.end(); }
+	constexpr auto begin() const noexcept { return data_.begin(); }
+	constexpr auto end() const noexcept { return data_.end(); }
+	constexpr auto cbegin() const noexcept { return data_.cbegin(); }
+	constexpr auto cend() const noexcept { return data_.cend(); }
+
+	constexpr auto rbegin() noexcept { return data_.rbegin(); }
+	constexpr auto rend() noexcept { return data_.rend(); }
+	constexpr auto rbegin() const noexcept { return data_.rbegin(); }
+	constexpr auto rend() const noexcept { return data_.rend(); }
+	constexpr auto crbegin() const noexcept { return data_.crbegin(); }
+	constexpr auto crend() const noexcept { return data_.crend(); }
+
+	constexpr bool      empty() const noexcept { return data_.empty(); }
+	constexpr size_type size() const noexcept { return data_.size(); }
+	constexpr size_type max_size() const noexcept { return data_.max_size(); }
+
+	template<typename U>
+	void fill(const U& v) {
+		static_assert(Detail::is_strictly_assignable_v<T, U>,
+			"Cannot assign fill value to entry type");
+		for (auto& ele : data_)
+		{
+			if constexpr (sizeof...(Sizes) == 0)
+				ele = v;
+			else
+				ele.fill(v);
+		}
+	}
+
+	constexpr void swap(MultiArray<T, Size, Sizes...>& other) noexcept { data_.swap(other.data_); }
 };
 
 // --------------------
@@ -232,134 +350,73 @@ inline uint64_t mul_hi64(uint64_t a, uint64_t b) {
 }
 
 // --------------------
-//  コマンドライン
+//   コマンドライン
 // --------------------
 
 struct CommandLine {
 public:
+	CommandLine() {}
 	CommandLine(int _argc, char** _argv) :
 		argc(_argc),
 		argv(_argv) {}
+
+	// コンストラクタでargc,argvを渡さなかった時に、あとから設定する。
+	void set_arg(int _argc, char** _argv) { argc = _argc, argv = _argv; }
 
 	static std::string get_binary_directory(std::string argv0);
 	static std::string get_working_directory();
 
 	int    argc;
 	char** argv;
+
+	// global object
+	static CommandLine g;
 };
 
 // --------------------
-//  全プロセッサを使う
+//     Utility
 // --------------------
 
-// Windows環境において、プロセスが1個の論理プロセッサグループを超えてスレッドを
-// 実行するのは不可能である。これは、最大64コアまでの使用に制限されていることを普通、意味する。
-// これを克服するためには、いくつかの特殊なプラットフォーム固有のAPIを呼び出して、
-// それぞのスレッドがgroup affinityを設定しなければならない。
-// 元のコードはPeter ÖsterlundによるTexelから。
+namespace Utility {
 
-namespace WinProcGroup {
-	// 各スレッドがidle_loop()などで自分のスレッド番号(0～)を渡す。
-	// 1つ目のプロセッサをまず使い切るようにgroup affinityを割り当てる。
-	// 1つ目のプロセッサの論理コアを使い切ったら次は2つ目のプロセッサを使っていくような動作。
-	void bindThisThread(size_t idx);
+// vectorのなかから、条件に合致するものを探して、見つかればそれを先頭に移動させる。
+// 元の先頭から、その見つけた要素の1つ前までは後方に1つずらす。
+template<typename T, typename Predicate>
+void move_to_front(std::vector<T>& vec, Predicate pred) {
+    auto it = std::find_if(vec.begin(), vec.end(), pred);
+
+    if (it != vec.end())
+    {
+        std::rotate(vec.begin(), it, it + 1);
+    }
+}
 }
 
-// -----------------------
-//  探索のときに使う時間管理用
-// -----------------------
+// 到達しないことを明示して最適化を促す。
+// 💡 sf_assume(false)ならば、そこには到達しないことを明示する。sf_assume(true)ならば到達する。
+//     clangを除外してあるのは、警告が消えないからっぽい。
 
-namespace Search { struct LimitsType; }
-
-struct Timer
-{
-	// タイマーを初期化する。以降、elapsed()でinit()してからの経過時間が得られる。
-	void reset() { startTime = startTimeFromPonderhit = now(); }
-
-	// "ponderhit"からの時刻を計測する用
-	void reset_for_ponderhit() { startTimeFromPonderhit = now(); }
-
-	// 探索開始からの経過時間。単位は[ms]
-	// 探索node数に縛りがある場合、elapsed()で探索node数が返ってくる仕様にすることにより、一元管理できる。
-	TimePoint elapsed() const;
-
-	// reset_for_ponderhit()からの経過時間。その関数は"ponderhit"したときに呼び出される。
-	// reset_for_ponderhit()が呼び出されていないときは、reset()からの経過時間。その関数は"go"コマンドでの探索開始時に呼び出される。
-	TimePoint elapsed_from_ponderhit() const;
-
-	// reset()されてからreset_for_ponderhit()までの時間
-	TimePoint elapsed_from_start_to_ponderhit() const { return (TimePoint)(startTimeFromPonderhit - startTime); }
-
-#if 0
-	// 探索node数を経過時間の代わりに使う。(こうするとタイマーに左右されない思考が出来るので、思考に再現性を持たせることが出来る)
-	// node数を指定して探索するとき、探索できる残りnode数。
-	// ※　StockfishでここintになっているのはTimePointにするのが正しいと思う。[2020/01/20]
-	TimePoint availableNodes;
-	// →　NetworkDelayやMinimumThinkingTimeなどの影響を考慮するのが難しく、将棋の場合、
-	// 　相性があまりよろしくないのでこの機能はやねうら王ではサポートしないことにする。
+#if defined(__GNUC__) && !defined(__clang__)
+    #if __GNUC__ >= 13
+        #define sf_assume(cond) __attribute__((assume(cond)))
+    #else
+        #define sf_assume(cond) \
+            do \
+            { \
+                if (!(cond)) \
+                    __builtin_unreachable(); \
+            } while (0)
+    #endif
+#else
+    // do nothing for other compilers
+    #define sf_assume(cond)
 #endif
 
-	// このシンボルが定義されていると、今回の思考時間を計算する機能が有効になる。
-#if defined(USE_TIME_MANAGEMENT)
-
-	// 今回の思考時間を計算して、optimum(),maximum()が値をきちんと返せるようにする。
-	// ※　ここで渡しているlimitsは、今回の探索の終わりまでなくならないものとする。
-	//    "ponderhit"でreinit()でこの変数を参照することがあるため。
-	void init(const Search::LimitsType& limits, Color us, int ply);
-
-	// ponderhitの時に残り時間が付与されている時(USI拡張)、再度思考時間を調整するために↑のinit()相当のことを行う。
-	void reinit() { init_(*lastcall_Limits, lastcall_Us, lastcall_Ply);}
-
-	TimePoint minimum() const { return minimumTime; }
-	TimePoint optimum() const { return optimumTime; }
-	TimePoint maximum() const { return maximumTime; }
-
-	// 1秒単位で繰り上げてdelayを引く。
-	// ただし、remain_timeよりは小さくなるように制限する。
-	TimePoint round_up(TimePoint t) const;
-
-	// 探索終了の時間(startTime + search_end >= now()になったら停止)
-	std::atomic<TimePoint> search_end;
-
-private:
-	TimePoint minimumTime;
-	TimePoint optimumTime;
-	TimePoint maximumTime;
-
-	// Options["NetworkDelay"]の値
-	TimePoint network_delay;
-	// Options["MinimalThinkingTime"]の値
-	TimePoint minimum_thinking_time;
-
-	// 今回の残り時間 - Options["NetworkDelay2"]
-	TimePoint remain_time;
-
-	// init()の内部実装用。
-	void init_(const Search::LimitsType& limits, Color us, int ply);
-
-	// init()が最後に呼び出された時に各引数。これを保存しておき、reinit()の時にはこれを渡す。
-	Search::LimitsType* lastcall_Limits; // どこかに確保しっぱなしにするだろうからポインタでいいや…
-	Color lastcall_Us;
-	int lastcall_Ply;
-
-#endif
-
-private:
-	// 探索開始時刻。
-	TimePoint startTime;
-
-	// reset()かreset_for_ponderhit()が呼び出された時刻。
-	TimePoint startTimeFromPonderhit;
-};
-
-extern Timer Time;
-
-
-// =====   以下は、やねうら王の独自追加   =====
-
 // --------------------
-//  ツール類
+//    ツール類
 // --------------------
+
+class ThreadPool;
 
 namespace Tools
 {
@@ -369,7 +426,7 @@ namespace Tools
 	// nameは"Hash" , "eHash"などクリアしたいものの名前を書く。
 	// メモリクリアの途中経過が出力されるときにその名前(引数nameで渡している)が出力される。
 	// name == nullptrのとき、途中経過は表示しない。
-	void memclear(const char* name, void* table, size_t size);
+	void memclear(YaneuraOu::ThreadPool& threads, const char* name, void* table, size_t size);
 
 	// insertion sort
 	// 昇順に並び替える。学習時のコードで使いたい時があるので用意してある。
@@ -670,7 +727,7 @@ namespace SystemIO
 	{
 	public:
 		// 書き出し用のバッファサイズ([byte])
-		const size_t buf_size = 4096;
+		static constexpr size_t buf_size = 4096;
 
 		Tools::Result Open(const std::string& filename);
 
@@ -1201,7 +1258,7 @@ public:
 	void push(const std::string& s);
 
 	// main()に引数として渡されたパラメーターを解釈してqueueに積む。
-	void parse_args(int argc, char* argv[]);
+	void parse_args(const CommandLine& cli);
 
 private:
 	// 先行入力されたものを積んでおくqueue。
@@ -1209,15 +1266,15 @@ private:
 	std::queue<std::string> cmds;
 };
 
-extern StandardInput std_input;
-
 // --------------------
 //     UnitTest
 // --------------------
 
 namespace Misc {
 	// このheaderに書いてある関数のUnitTest。
-	void UnitTest(Test::UnitTester& tester);
+	void UnitTest(Test::UnitTester& tester, IEngine& engine);
 }
+
+} // namespace YaneuraOu
 
 #endif // #ifndef MISC_H_INCLUDED

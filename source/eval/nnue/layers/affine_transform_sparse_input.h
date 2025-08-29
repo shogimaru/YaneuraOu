@@ -2,8 +2,8 @@
 // Definition of the AffineTransform layer with block-sparse input in the NNUE evaluation function
 // NNUE評価関数におけるブロック疎な入力を持つAffineTransform層の定義
 
-#ifndef NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
-#define NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
+#ifndef CLASSIC_NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
+#define CLASSIC_NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
 
 #include "../../../config.h"
 
@@ -13,6 +13,7 @@
 #include "affine_transform.h"
 #include "simd.h"
 
+namespace YaneuraOu {
 namespace Eval::NNUE::Layers {
 
 #if defined(USE_SSSE3) || USE_NEON >= 8
@@ -394,7 +395,8 @@ class AffineTransformSparseInput {
 	alignas(kCacheLineSize) WeightType weights_[kOutputDimensions * kPaddedInputDimensions];
 };
 
-}  // namespace Eval::NNUE::Layers
+} // namespace Eval::NNUE::Layers
+} // namespace YaneuraOu
 
 #endif  // defined(EVAL_NNUE)
 

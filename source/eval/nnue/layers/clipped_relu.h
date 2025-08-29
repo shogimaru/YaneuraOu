@@ -1,8 +1,8 @@
 ﻿// Definition of layer ClippedReLU of NNUE evaluation function
 // NNUE評価関数の層ClippedReLUの定義
 
-#ifndef NNUE_LAYERS_CLIPPED_RELU_H_INCLUDED
-#define NNUE_LAYERS_CLIPPED_RELU_H_INCLUDED
+#ifndef CLASSIC_NNUE_LAYERS_CLIPPED_RELU_H_INCLUDED
+#define CLASSIC_NNUE_LAYERS_CLIPPED_RELU_H_INCLUDED
 
 #include "../../../config.h"
 
@@ -10,6 +10,7 @@
 
 #include "../nnue_common.h"
 
+namespace YaneuraOu {
 namespace Eval::NNUE::Layers {
 
 // Clipped ReLU
@@ -198,7 +199,6 @@ class ClippedReLU {
       output[i] = static_cast<OutputType>(
           std::max(0, std::min(127, input[i] >> kWeightScaleBits)));
     }
-
     return output;
   }
 
@@ -210,7 +210,8 @@ class ClippedReLU {
    PreviousLayer previous_layer_;
 };
 
-}  // namespace Eval::NNUE::Layers
+} // namespace Eval::NNUE::Layers
+} // namespace YaneuraOu
 
 #endif  // defined(EVAL_NNUE)
 
