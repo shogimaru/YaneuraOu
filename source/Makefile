@@ -114,7 +114,7 @@ PYTHON = python
 
 
 # 標準的なコンパイルオプション (standard compile options)
-CPPFLAGS      = -std=c++17 -fno-exceptions -fno-rtti -Wextra -DPOSIXALIGNEDALLOC
+CPPFLAGS      = -std=c++17 -fno-exceptions -fno-rtti -Wextra -MMD -MP -fpermissive
 NVCC_CPPFLAGS = -std=c++17 -x cu -maxrregcount=0 --machine 64 --compile -cudart static -DNDEBUG -Xcompiler "-Ofast"
 WCPPFLAGS     =
 LDFLAGS       = $(EXTRA_LDFLAGS)
