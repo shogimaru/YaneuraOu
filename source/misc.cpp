@@ -563,8 +563,8 @@ ostream& operator<<(ostream& os, SyncCout sc) {
 	return os;
 }
 
-void sync_cout_start() { std::cout << IO_LOCK; }
-void sync_cout_end() { std::cout << IO_UNLOCK; }
+void sync_cout_start() { usi::cmd << IO_LOCK; }
+void sync_cout_end() { usi::cmd << IO_UNLOCK; }
 
 // --------------------
 //  prefetch命令
@@ -629,7 +629,7 @@ namespace Tools {
 	// ※ Stockfishのtt.cppのTranspositionTable::clear()にあるコードと同等のコード。
 	void memclear(ThreadPool& threads, const char* name_, void* table, size_t size)
 	{
-#if !defined(EVAL_LEARN) && !defined(__EMSCRIPTEN__)
+#if !defined(EVAL_LEARN)  // Use here in shogimaru
 
 		// Windows10では、このゼロクリアには非常に時間がかかる。
 		// malloc()時点ではメモリを実メモリに割り当てられておらず、

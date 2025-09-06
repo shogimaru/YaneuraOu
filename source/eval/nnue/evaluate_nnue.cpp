@@ -386,7 +386,7 @@ void load_eval() {
 #endif
     {
         const std::string dir_name = Options["EvalDir"];
-    #if !defined(__EMSCRIPTEN__)
+    #if 1  // Use here in shogimaru
 		const std::string file_name = NNUE::kFileName;
 #else
 		// WASM

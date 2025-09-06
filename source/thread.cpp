@@ -27,7 +27,7 @@ Thread::Thread(
 	stdThread(&Thread::idle_loop, this)
 {
 
-#if !defined(__EMSCRIPTEN__)
+#if 1  // Use in shogimaru
 
 	run_custom_job([this, &binder /* ,&sharedState, &sm*/ , worker_factory, thread_id]() {
 

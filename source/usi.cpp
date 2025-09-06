@@ -14,6 +14,7 @@
 
 #if defined(__EMSCRIPTEN__)
 // yaneuraou.wasm
+#include "command.h"
 #include <emscripten.h>
 #endif
 
@@ -70,7 +71,7 @@ void USIEngine::print_info_string(std::string_view str) {
 	{
 		if (!is_whitespace(line))
 		{
-			std::cout << "info string " << line << '\n';
+			usi::cmd << "info string " << line << '\n';
 		}
 	}
 	sync_cout_end();
@@ -144,13 +145,13 @@ void USIEngine::loop()
 	// コマンドラインと"startup.txt"に書かれているUSIコマンドをstd_inputに積む。
 	//enqueue_startup_command();
 
-#if !defined(__EMSCRIPTEN__)
+#if 1  // Use in shogimaru
 
 	// USIコマンドの処理
 	while (true)
 	{
 		// 標準入力から1行取得。
-		std::string cmd = std_input.input();
+		std::string cmd = Command::instance().wait();
 
 		// "quit"が来たらwhileを抜ける
 		if (usi_cmdexec(cmd))
@@ -1304,8 +1305,8 @@ void USIEngine::on_bestmove(std::string_view bestmove, std::string_view ponder) 
 
     sync_cout << "bestmove " << bestmove;
     if (!ponder.empty())
-        std::cout << " ponder " << ponder;
-    std::cout << sync_endl;
+        usi::cmd << " ponder " << ponder;
+    usi::cmd << sync_endl;
 }
 
 void USIEngine::on_update_string(std::string_view info) { sync_cout << "info string " << info << sync_endl; }
@@ -1345,8 +1346,8 @@ void USIEngine::isready() {
 void USIEngine::moves() {
     auto& pos = engine.get_position();
     for (auto m : MoveList<LEGAL_ALL>(pos))
-        std::cout << m << ' ';
-    std::cout << std::endl;
+        usi::cmd << m << ' ';
+    usi::cmd << std::endl;
 }
 
 // "getoption"コマンドのhandler
@@ -1795,7 +1796,7 @@ std::string USIEngine::value(Value v)
 
 
 
-#if defined(__EMSCRIPTEN__)
+#if 0  // Not use in shogimaru
 // --------------------
 // EMSCRIPTEN support
 // --------------------

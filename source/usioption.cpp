@@ -433,7 +433,7 @@ void OptionsMap::build_option(const std::string& line)
 		if (it == Options.end())
 		{
 			// 違うのか。何の形式で書こうとしているのだろうか…。
-			std::cout << "Error : option name not found : " << token << std::endl;
+			usi::cmd << "Error : option name not found : " << token << std::endl;
 			return;
 		}
 
@@ -458,13 +458,13 @@ void OptionsMap::build_option(const std::string& line)
 				combo_list.push_back(varText);
 			}
 			else {
-				std::cout << "Error : invalid command: " << token << std::endl;
+				usi::cmd << "Error : invalid command: " << token << std::endl;
 			}
 		}
 
 		if (Options.count(name) == 0)
 		{
-			std::cout << "Error : option name not found : " << name << std::endl;
+			usi::cmd << "Error : option name not found : " << name << std::endl;
 			return;
 		}
 
